@@ -6,6 +6,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.app.Activity;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
@@ -38,7 +39,7 @@ public class MainActivity extends AppCompatActivity  {
         CustomAdapter customAdapter = new CustomAdapter(getApplicationContext(), listaProdutos);
         simpleList.setAdapter(customAdapter);
 
-         CheckBox binding=findViewById(R.id.marcar_todos);
+        CheckBox binding=findViewById(R.id.marcar_todos);
         binding.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -254,8 +255,7 @@ public class MainActivity extends AppCompatActivity  {
         produto = new Produto(categorias[2], "Amaciante", false);
         this.listaProdutos.add(produto);
 
-       // listaProdutos.get(0).setTem(true);
-
+       ///listaProdutos.get(0).setTem(true);
 
 
     }

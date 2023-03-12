@@ -1,7 +1,11 @@
 package com.example.listadecomprascinthia.activity.adapter;
 
+import static com.example.listadecomprascinthia.R.color.meuVerde;
+
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.PorterDuff;
+import android.graphics.Typeface;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,6 +14,8 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.ColorRes;
 
 import com.example.listadecomprascinthia.R;
 import com.example.listadecomprascinthia.activity.model.Produto;
@@ -54,17 +60,35 @@ public class CustomAdapter extends BaseAdapter {
     public View getView(int i, View view, ViewGroup viewGroup) {
 
         view = inflter.inflate(R.layout.adapter_lista, null);
-        TextView categoria_produto = (TextView) view.findViewById(R.id.categoriaid);
+        Button categoria_produto = (Button) view.findViewById(R.id.categoriaid);
         TextView nome_produto = (TextView) view.findViewById(R.id.nome_produtoid);
         CheckBox check_produto = (CheckBox) view.findViewById(R.id.temid);
+
 
         categoria_produto.setText(listaProdutos.get(i).getCategoria_produto());
         nome_produto.setText(listaProdutos.get(i).getNome_produto());
         check_produto.setChecked(listaProdutos.get(i).isTem());
 
 
+            if (listaProdutos.get(i).getCategoria_produto() == "Produtos Alimentícios") {
+               // System.out.println("Oie eu sou um produto alimentício");
+               // categoria_produto.setBackgroundResource(R.color.meuVerde);
+                categoria_produto.setTextColor(Color.parseColor("#ec6202"));
+                categoria_produto.setTypeface(Typeface.defaultFromStyle(Typeface.BOLD));
+            }
+        if (listaProdutos.get(i).getCategoria_produto() == "Produtos de Limpeza") {
 
-      check_produto.setOnClickListener(new View.OnClickListener() {
+            categoria_produto.setTextColor(Color.parseColor("#1E90FF"));
+            categoria_produto.setTypeface(Typeface.defaultFromStyle(Typeface.BOLD));
+        }
+
+        if (listaProdutos.get(i).getCategoria_produto() == "Produtos de Higiene Pessoal") {
+
+            categoria_produto.setTextColor(Color.parseColor("#DB7093"));
+            categoria_produto.setTypeface(Typeface.defaultFromStyle(Typeface.BOLD));
+        }
+
+        check_produto.setOnClickListener(new View.OnClickListener() {
           @Override
           public void onClick(View v) {
               if (check_produto.isChecked()){
