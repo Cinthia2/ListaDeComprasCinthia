@@ -6,6 +6,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.app.Activity;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
@@ -20,42 +21,97 @@ import com.example.listadecomprascinthia.R;
 import com.example.listadecomprascinthia.activity.adapter.Adapter;
 import com.example.listadecomprascinthia.activity.adapter.CustomAdapter;
 import com.example.listadecomprascinthia.activity.model.Produto;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import com.example.listadecomprascinthia.activity.model.Produto;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity  {
+public class MainActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     ListView simpleList;
     List<Produto> listaProdutos = new ArrayList<Produto>();
 
-
+    //variável para armazenar a escolha do usuário e manter esta informação em um arquivo, mesmo se o
+    //usuário fechar o aplicativo
+    //private static final String ARQUIVO_PREFERENCIA = "ArquivoPreferencia";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        loadData();
         this.criarProdutos();
+
+        Button buttonSave = findViewById(R.id.id_salvar);
+        buttonSave.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                saveData();
+            }
+        });
+
         simpleList = (ListView) findViewById(R.id.simpleListView);
         CustomAdapter customAdapter = new CustomAdapter(getApplicationContext(), listaProdutos);
         simpleList.setAdapter(customAdapter);
 
-        CheckBox binding=findViewById(R.id.marcar_todos);
+        CheckBox binding = findViewById(R.id.marcar_todos);
         binding.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast.makeText(getApplicationContext(), "MARCAR TODOS CLICADO ", Toast.LENGTH_SHORT).show();
-               if (binding.isChecked()){
-                for(int i=0;i<listaProdutos.size();i++){
-                 listaProdutos.get(i).setTem(true);
-                }}else{
+                                                //arquivo que vai ser gravado e modo de gravação 0 somente este aplicativo vai poder ler este arquivo
+                //SharedPreferences preferences = getSharedPreferences(ARQUIVO_PREFERENCIA, 0);
+                //SharedPreferences.Editor editor = preferences.edit();
 
-                    for(int i=0;i<listaProdutos.size();i++){
-                        listaProdutos.get(i).setTem(false);
+
+                Toast.makeText(getApplicationContext(), "MARCAR TODOS CLICADO ", Toast.LENGTH_SHORT).show();
+                if (binding.isChecked()) {
+                    for (int i = 0; i < listaProdutos.size(); i++) {
+                        listaProdutos.get(i).setTem(true);
+                        //salva na chave "tem" o valor "true"
+                        //editor.putBoolean("chave_marcar_todos"+listaProdutos.get(i), true);
+                        //editor.commit();
+
                     }
+
+                } else {
+
+                    for (int i = 0; i < listaProdutos.size(); i++) {
+                        listaProdutos.get(i).setTem(false);
+                        //salva na chave "tem" o valor "false"
+                        //editor.putBoolean("chave_marcar_todos"+listaProdutos.get(i), false);
+                        //editor.commit();
+                    }
+
                 }
                 customAdapter.notifyDataSetChanged();
             }
         });
+
+
+
+
+        //recuperar dados salvos
+        //SharedPreferences preferences = getSharedPreferences(ARQUIVO_PREFERENCIA, 0);
+
+        //validação se existe a chave tem em preferências
+        //if (preferences.contains("chave_marcar_todos")){
+            //Caso o preferencias não consiga recuperar o dado armazenado seta como false o checkbox marcar_todos
+         //Boolean chave_marcar_todos = preferences.getBoolean("chave_marcar_todos", false);
+         //binding.setChecked(chave_marcar_todos);
+        //  }else{
+        //    System.out.println("Olá não foi salvo o marcar todos");
+
+    }
 
 /*
         Button addBtn =findViewById(R.id.add_produto);
@@ -77,9 +133,31 @@ public class MainActivity extends AppCompatActivity  {
                 customAdapter.notifyDataSetChanged();
             }
         });*/
+
+    private void saveData(){
+        //função que serve para salvar os dados em preferências do usuário em uma lista do tipo json
+        SharedPreferences preferences = getSharedPreferences("shared preferences", MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
+
+        Gson gson = new Gson();
+        String json = gson.toJson(listaProdutos);
+        editor.putString("task list", json);
+        editor.apply();
+
     }
 
+    private void loadData(){
+        //função que serve para recuperar o dado salvo em preferências do usuário
+        SharedPreferences preferences = getSharedPreferences("shared preferences", MODE_PRIVATE);
+        Gson gson = new Gson();
+        String json = preferences.getString("task list", null);
+        Type type = new TypeToken<ArrayList<Produto>>() {}.getType();
+        listaProdutos = gson.fromJson(json, type);
 
+        if (listaProdutos == null){
+            listaProdutos = new ArrayList<>();
+        }
+    }
     public void criarProdutos() {
 
         String[] categorias = {"Produtos Alimentícios", "Produtos de Limpeza", "Produtos de Higiene Pessoal"};
@@ -255,9 +333,12 @@ public class MainActivity extends AppCompatActivity  {
         produto = new Produto(categorias[2], "Amaciante", false);
         this.listaProdutos.add(produto);
 
-       ///listaProdutos.get(0).setTem(true);
+        ///listaProdutos.get(0).setTem(true);
 
 
     }
 
 }
+
+
+

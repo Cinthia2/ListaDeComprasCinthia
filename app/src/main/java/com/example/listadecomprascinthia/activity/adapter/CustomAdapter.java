@@ -3,6 +3,7 @@ package com.example.listadecomprascinthia.activity.adapter;
 import static com.example.listadecomprascinthia.R.color.meuVerde;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.Typeface;
@@ -26,7 +27,7 @@ public class CustomAdapter extends BaseAdapter {
     public boolean isAllChecked = false;
     Context context;
     List<Produto> listaProdutos;
-
+    private static final String ARQUIVO_PREFERENCIA = "ArquivoPreferencia";
     LayoutInflater inflter;
 
     public CustomAdapter(Context applicationContext, List<Produto> produtoList){
@@ -91,6 +92,8 @@ public class CustomAdapter extends BaseAdapter {
         check_produto.setOnClickListener(new View.OnClickListener() {
           @Override
           public void onClick(View v) {
+
+
               if (check_produto.isChecked()){
                   Toast.makeText(context, "Marcado "+listaProdutos.get(i).getNome_produto(), Toast.LENGTH_SHORT).show();
                   check_produto.setChecked(true);
@@ -116,6 +119,8 @@ public class CustomAdapter extends BaseAdapter {
 
         return view;
     }
+
+
 
 
 
