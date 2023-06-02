@@ -15,6 +15,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.listadecomprascinthia.R;
@@ -23,7 +24,7 @@ import com.example.listadecomprascinthia.activity.adapter.CustomAdapter;
 import com.example.listadecomprascinthia.activity.model.Produto;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.example.listadecomprascinthia.activity.model.Produto;
+
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -35,7 +36,7 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
-
+import com.example.listadecomprascinthia.activity.adapter.CustomAdapter;
 public class MainActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     ListView simpleList;
@@ -43,32 +44,32 @@ public class MainActivity extends AppCompatActivity {
 
     //variável para armazenar a escolha do usuário e manter esta informação em um arquivo, mesmo se o
     //usuário fechar o aplicativo
-    //private static final String ARQUIVO_PREFERENCIA = "ArquivoPreferencia";
+    //Dados para salvar no arquivo TESTE2
+    private static final String ARQUIVO_PREFERENCIA = "ArquivoPreferencia";
+    private TextView textResultado;
+
+    private CheckBox checkboxTemid;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        loadData();
         this.criarProdutos();
 
-        Button buttonSave = findViewById(R.id.id_salvar);
-        buttonSave.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                saveData();
-            }
-        });
+        textResultado = (TextView)findViewById(R.id.resultado);
 
         simpleList = (ListView) findViewById(R.id.simpleListView);
         CustomAdapter customAdapter = new CustomAdapter(getApplicationContext(), listaProdutos);
         simpleList.setAdapter(customAdapter);
 
+
+        salvar(listaProdutos);
+        recuperar();
         CheckBox binding = findViewById(R.id.marcar_todos);
         binding.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                                                //arquivo que vai ser gravado e modo de gravação 0 somente este aplicativo vai poder ler este arquivo
+                //arquivo que vai ser gravado e modo de gravação 0 somente este aplicativo vai poder ler este arquivo
                 //SharedPreferences preferences = getSharedPreferences(ARQUIVO_PREFERENCIA, 0);
                 //SharedPreferences.Editor editor = preferences.edit();
 
@@ -113,6 +114,38 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void salvar(List<Produto> listaProdutos) {
+        Button buttonSave = findViewById(R.id.id_salvar);
+        buttonSave.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String produto = "produto_";
+
+                Toast.makeText(getApplicationContext(), "VC CLICOU NO BOTAO SALVAR "+listaProdutos.get(0).isTem()+" e "+ produto+String.valueOf(0), Toast.LENGTH_SHORT).show();
+
+                //SharedPreferes é simplesmente um arquivo xml com os dados
+                SharedPreferences preferences = getSharedPreferences(ARQUIVO_PREFERENCIA, 0);
+                SharedPreferences.Editor editor = preferences.edit();
+                //putBoolean(chave, valor)
+                editor.putBoolean(produto+String.valueOf(0), listaProdutos.get(0).isTem());
+                editor.commit();
+
+
+            }
+        });
+    }
+    private void recuperar(){
+        String produto = "produto_";
+        Boolean temproduto;
+        //SharedPreferes é simplesmente um arquivo xml com os dados
+        SharedPreferences preferences = getSharedPreferences(ARQUIVO_PREFERENCIA, 0);
+        temproduto = preferences.getBoolean(produto+String.valueOf(0),false);
+        textResultado.setText(String.valueOf(temproduto));
+        listaProdutos.get(0).setTem(temproduto);
+
+    }
+
+
 /*
         Button addBtn =findViewById(R.id.add_produto);
         addBtn.setOnClickListener(new View.OnClickListener() {
@@ -133,7 +166,8 @@ public class MainActivity extends AppCompatActivity {
                 customAdapter.notifyDataSetChanged();
             }
         });*/
-
+/*
+Erro de salvar o mesmo registro várias vezes
     private void saveData(){
         //função que serve para salvar os dados em preferências do usuário em uma lista do tipo json
         SharedPreferences preferences = getSharedPreferences("shared preferences", MODE_PRIVATE);
@@ -158,6 +192,8 @@ public class MainActivity extends AppCompatActivity {
             listaProdutos = new ArrayList<>();
         }
     }
+
+ */
     public void criarProdutos() {
 
         String[] categorias = {"Produtos Alimentícios", "Produtos de Limpeza", "Produtos de Higiene Pessoal"};
