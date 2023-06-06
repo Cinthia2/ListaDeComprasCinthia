@@ -119,16 +119,23 @@ public class MainActivity extends AppCompatActivity {
         buttonSave.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                int contador=0;
                 String produto = "produto_";
-
-                Toast.makeText(getApplicationContext(), "VC CLICOU NO BOTAO SALVAR "+listaProdutos.get(0).isTem()+" e "+ produto+String.valueOf(0), Toast.LENGTH_SHORT).show();
-
                 //SharedPreferes é simplesmente um arquivo xml com os dados
                 SharedPreferences preferences = getSharedPreferences(ARQUIVO_PREFERENCIA, 0);
                 SharedPreferences.Editor editor = preferences.edit();
                 //putBoolean(chave, valor)
-                editor.putBoolean(produto+String.valueOf(0), listaProdutos.get(0).isTem());
+                for (int i = 0; i < listaProdutos.size(); i++) {
+                    //Salva cada produto com uma chave diferente produto_id e verifica se for true para "tem produto" salva senão não salva
+                    editor.putBoolean(produto + String.valueOf(i), listaProdutos.get(i).isTem());
+                    if(listaProdutos.get(i).isTem()==true){
+                        contador=contador+1;
+                    }
+
+                }
+                Toast.makeText(getApplicationContext(), "Quantidade de itens salvos: "+contador, Toast.LENGTH_SHORT).show();
                 editor.commit();
+
 
 
             }
@@ -138,11 +145,13 @@ public class MainActivity extends AppCompatActivity {
         String produto = "produto_";
         Boolean temproduto;
         //SharedPreferes é simplesmente um arquivo xml com os dados
-        SharedPreferences preferences = getSharedPreferences(ARQUIVO_PREFERENCIA, 0);
-        temproduto = preferences.getBoolean(produto+String.valueOf(0),false);
-        textResultado.setText(String.valueOf(temproduto));
-        listaProdutos.get(0).setTem(temproduto);
 
+        SharedPreferences preferences = getSharedPreferences(ARQUIVO_PREFERENCIA, 0);
+        for(int i=0;i<listaProdutos.size();i++) {
+            temproduto = preferences.getBoolean(produto + String.valueOf(i), false);
+           // textResultado.setText(String.valueOf(temproduto));
+            listaProdutos.get(i).setTem(temproduto);
+        }
     }
 
 

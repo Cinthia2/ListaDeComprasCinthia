@@ -97,7 +97,7 @@ public class CustomAdapter extends BaseAdapter {
               //Pegando o textView de outra view, no caso a da MainActivity
 
               if (check_produto.isChecked()){
-                  Toast.makeText(context, "Marcado "+listaProdutos.get(i).getNome_produto(), Toast.LENGTH_SHORT).show();
+                 // Toast.makeText(context, "Marcado "+listaProdutos.get(i).getNome_produto(), Toast.LENGTH_SHORT).show();
                   check_produto.setChecked(true);
                   listaProdutos.get(i).setTem(true);
                   check_produto.setTextColor(Color.parseColor("#FF610B53"));
