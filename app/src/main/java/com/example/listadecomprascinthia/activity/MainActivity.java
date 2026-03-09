@@ -1,50 +1,42 @@
 package com.example.listadecomprascinthia.activity;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.DividerItemDecoration;
-import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import android.app.Activity;
 import android.content.SharedPreferences;
-import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
-import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
-import android.widget.LinearLayout;
+import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.listadecomprascinthia.R;
-import com.example.listadecomprascinthia.activity.adapter.Adapter;
 import com.example.listadecomprascinthia.activity.adapter.CustomAdapter;
 import com.example.listadecomprascinthia.activity.model.Produto;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
-
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
-import com.example.listadecomprascinthia.activity.adapter.CustomAdapter;
+
 public class MainActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     ListView simpleList;
     List<Produto> listaProdutos = new ArrayList<Produto>();
-
+    //Transformar o adapter em variável global
+    private CustomAdapter customAdapter;
     //variável para armazenar a escolha do usuário e manter esta informação em um arquivo, mesmo se o
-    //usuário fechar o aplicativo
-    //Dados para salvar no arquivo TESTE2
+    //usuário fechar o aplicativo Dados para salvar no arquivo TESTE
     private static final String ARQUIVO_PREFERENCIA = "ArquivoPreferencia";
     private TextView textResultado;
 
@@ -56,15 +48,19 @@ public class MainActivity extends AppCompatActivity {
 
         this.criarProdutos();
 
+        //label de teste saída das coisas
         textResultado = (TextView)findViewById(R.id.resultado);
 
         simpleList = (ListView) findViewById(R.id.simpleListView);
-        CustomAdapter customAdapter = new CustomAdapter(getApplicationContext(), listaProdutos);
+        //O Adapter fica acessível em toda Activity
+        customAdapter = new CustomAdapter(getApplicationContext(), listaProdutos);
         simpleList.setAdapter(customAdapter);
 
-
+        //Função para chamar o botão para abrir o modal
+        novo_produto();
+        //Função para salvar na memória do dispositivo
         salvar(listaProdutos);
-        recuperar();
+
         CheckBox binding = findViewById(R.id.marcar_todos);
         binding.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -100,110 +96,146 @@ public class MainActivity extends AppCompatActivity {
 
 
 
+    //recuperar dados salvos
+    //SharedPreferences preferences = getSharedPreferences(ARQUIVO_PREFERENCIA, 0);
 
-        //recuperar dados salvos
-        //SharedPreferences preferences = getSharedPreferences(ARQUIVO_PREFERENCIA, 0);
-
-        //validação se existe a chave tem em preferências
-        //if (preferences.contains("chave_marcar_todos")){
-            //Caso o preferencias não consiga recuperar o dado armazenado seta como false o checkbox marcar_todos
-         //Boolean chave_marcar_todos = preferences.getBoolean("chave_marcar_todos", false);
-         //binding.setChecked(chave_marcar_todos);
-        //  }else{
-        //    System.out.println("Olá não foi salvo o marcar todos");
+    //validação se existe a chave tem em preferências
+    //if (preferences.contains("chave_marcar_todos")){
+    //Caso o preferencias não consiga recuperar o dado armazenado seta como false o checkbox marcar_todos
+    //Boolean chave_marcar_todos = preferences.getBoolean("chave_marcar_todos", false);
+    //binding.setChecked(chave_marcar_todos);
+    //  }else{
+    //    System.out.println("Olá não foi salvo o marcar todos");
 
     }
 
-    private void salvar(List<Produto> listaProdutos) {
-        Button buttonSave = findViewById(R.id.id_salvar);
-        buttonSave.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                int contador=0;
-                String produto = "produto_";
-                //SharedPreferes é simplesmente um arquivo xml com os dados
-                SharedPreferences preferences = getSharedPreferences(ARQUIVO_PREFERENCIA, 0);
-                SharedPreferences.Editor editor = preferences.edit();
-                //putBoolean(chave, valor)
-                for (int i = 0; i < listaProdutos.size(); i++) {
-                    //Salva cada produto com uma chave diferente produto_id e verifica se for true para "tem produto" salva senão não salva
-                    editor.putBoolean(produto + String.valueOf(i), listaProdutos.get(i).isTem());
-                    if(listaProdutos.get(i).isTem()==true){
-                        contador=contador+1;
-                    }
-
-                }
-                Toast.makeText(getApplicationContext(), "Quantidade de itens salvos: "+contador, Toast.LENGTH_SHORT).show();
-                editor.commit();
-
-
-
-            }
+    private void novo_produto(){
+        //botão +
+        FloatingActionButton buttonAdicionarProduto = findViewById(R.id.btnNovoProduto);
+        buttonAdicionarProduto.setOnClickListener(view -> {
+            Toast.makeText(getApplicationContext(),
+                    "Novo produto",
+                    Toast.LENGTH_SHORT).show();
+            // abrir o modal para adicionar mais produtos
+            abrirModalProduto();
         });
     }
-    private void recuperar(){
-        String produto = "produto_";
-        Boolean temproduto;
-        //SharedPreferes é simplesmente um arquivo xml com os dados
+    //função para salvar o arquivo na memória local do dispositivo
 
+    private void salvar(List<Produto> listaProdutos) {
+
+        Button buttonSave = findViewById(R.id.id_salvar);
+        //evento para quando o botão for clicado
+        buttonSave.setOnClickListener(view -> {
+
+            int contador = 0;
+            //SharedPreferes é simplesmente um arquivo xml com os dados
+            SharedPreferences preferences = getSharedPreferences(ARQUIVO_PREFERENCIA, 0);
+            SharedPreferences.Editor editor = preferences.edit();
+
+
+            for (int i = 0; i < listaProdutos.size(); i++) {
+
+
+                Produto p = listaProdutos.get(i);
+
+                //Salva cada produto com uma chave diferente produto_id
+                editor.putString("produto_categoria_" + i, p.getCategoria_produto());
+                editor.putString("produto_nome_" + i, p.getNome_produto());
+                editor.putBoolean("produto_tem_" + i, p.isTem());
+
+
+                if (p.isTem()) {
+                    contador++;
+                }
+            }
+
+            editor.putInt("quantidade_produtos", listaProdutos.size());
+            editor.apply();
+
+            Toast.makeText(getApplicationContext(),
+                    "Quantidade de itens salvos: " + contador,
+                    Toast.LENGTH_SHORT).show();
+        });
+    }
+
+
+    //Função para abrir o modal de adição de produtos
+    private void abrirModalProduto() {
+
+        View view = getLayoutInflater().inflate(R.layout.modal_adicionar_produto, null);
+
+        Spinner spinnerCategoria = view.findViewById(R.id.spinnerCategoria);
+        EditText nomeProduto = view.findViewById(R.id.editNomeProduto);
+        CheckBox checkComprado = view.findViewById(R.id.checkComprado);
+        Button btnAdicionar = view.findViewById(R.id.btnAdicionar);
+
+        String[] categorias = {
+                "Produtos Alimentícios",
+                "Produtos de Limpeza",
+                "Produtos de Higiene Pessoal"
+        };
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_dropdown_item,
+                categorias
+        );
+
+        spinnerCategoria.setAdapter(adapter);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(view)
+                .create();
+
+        btnAdicionar.setOnClickListener(v -> {
+
+            String categoria = spinnerCategoria.getSelectedItem().toString();
+            String nome = nomeProduto.getText().toString();
+            boolean comprado = checkComprado.isChecked();
+
+            Produto produto = new Produto(categoria, nome, comprado);
+            this.listaProdutos.add(produto);
+            customAdapter.notifyDataSetChanged(); // atualiza ListView automático
+            salvar(listaProdutos);
+
+
+            Toast.makeText(getApplicationContext(),
+                    "Produto "+ produto.getNome_produto() +" adicionado!",
+                    Toast.LENGTH_LONG).show();
+
+            dialog.dismiss();
+
+
+        });
+
+
+        dialog.show();
+    }
+
+    private void recuperaProdutos(){
         SharedPreferences preferences = getSharedPreferences(ARQUIVO_PREFERENCIA, 0);
-        for(int i=0;i<listaProdutos.size();i++) {
-            temproduto = preferences.getBoolean(produto + String.valueOf(i), false);
-           // textResultado.setText(String.valueOf(temproduto));
-            listaProdutos.get(i).setTem(temproduto);
+
+        int quantidade = preferences.getInt("quantidade_produtos", 0);
+
+        for (int i = 0; i < quantidade; i++) {
+
+            String categoria = preferences.getString("produto_categoria_" + i, "");
+            String nome = preferences.getString("produto_nome_" + i, "");
+            boolean tem = preferences.getBoolean("produto_tem_" + i, false);
+
+            Produto produto = new Produto(categoria, nome, tem);
+            this.listaProdutos.add(produto);
+
+
         }
     }
 
-
-/*
-        Button addBtn =findViewById(R.id.add_produto);
-        addBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                // Produto produto = new Produto("Categoria", "Nome", false);
-                // listaProdutos.add(0,produto);
-                Toast.makeText(getApplicationContext(), "Depois adiciono produto ", Toast.LENGTH_SHORT).show();
-            }
-        });*/
-
-       /* CheckBox binding=findViewById(R.id.marcar_todos);
-        binding.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Toast.makeText(getApplicationContext(), "MARCAR TODOS CLICADO ", Toast.LENGTH_SHORT).show();
-                customAdapter.setAllChecked(binding.isChecked());
-                customAdapter.notifyDataSetChanged();
-            }
-        });*/
-/*
-Erro de salvar o mesmo registro várias vezes
-    private void saveData(){
-        //função que serve para salvar os dados em preferências do usuário em uma lista do tipo json
-        SharedPreferences preferences = getSharedPreferences("shared preferences", MODE_PRIVATE);
-        SharedPreferences.Editor editor = preferences.edit();
-
-        Gson gson = new Gson();
-        String json = gson.toJson(listaProdutos);
-        editor.putString("task list", json);
-        editor.apply();
-
-    }
-
-    private void loadData(){
-        //função que serve para recuperar o dado salvo em preferências do usuário
-        SharedPreferences preferences = getSharedPreferences("shared preferences", MODE_PRIVATE);
-        Gson gson = new Gson();
-        String json = preferences.getString("task list", null);
-        Type type = new TypeToken<ArrayList<Produto>>() {}.getType();
-        listaProdutos = gson.fromJson(json, type);
-
-        if (listaProdutos == null){
-            listaProdutos = new ArrayList<>();
-        }
-    }
-
- */
     public void criarProdutos() {
+
+
+
+        recuperaProdutos();
 
         String[] categorias = {"Produtos Alimentícios", "Produtos de Limpeza", "Produtos de Higiene Pessoal"};
 
@@ -382,6 +414,7 @@ Erro de salvar o mesmo registro várias vezes
 
 
     }
+
 
 }
 

@@ -26,6 +26,16 @@
             android:text="Marcar todos"
             android:textAlignment="viewStart" />
 
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/btnNovoProduto"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:contentDescription="Adicionar produto"
+            android:visibility="visible"
+            app:backgroundTint="@color/purple_700"
+            app:srcCompat="@android:drawable/ic_menu_add" />
+
     </LinearLayout>
 
     <LinearLayout
@@ -79,9 +89,9 @@
         android:id="@+id/resultado"
         android:layout_width="118dp"
         android:layout_height="42dp"
-        android:text="TextView"
+        android:text="teste"
         android:textAlignment="center"
-        android:textSize="24sp"
+        android:textSize="14sp"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="@+id/linearLayout2"
         app:layout_constraintEnd_toStartOf="@+id/id_salvar"
