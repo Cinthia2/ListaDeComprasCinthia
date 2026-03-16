@@ -71,21 +71,22 @@ public class CustomAdapter extends BaseAdapter {
         nome_produto.setText(listaProdutos.get(i).getNome_produto());
         check_produto.setChecked(listaProdutos.get(i).isTem());
 
-
-
-        if (listaProdutos.get(i).getCategoria_produto() == "Produtos Alimentícios") {
+        //ajuste para comparar corretamente e recuperar a cores do meu adapter
+//        Em Java, == não compara o conteúdo da String, ele compara o endereço na memória.
+//                Quando você recupera os produtos do SharedPreferences, as Strings são recriadas, então o endereço muda, e a comparação falha.
+        if (listaProdutos.get(i).getCategoria_produto().equals("Produtos Alimentícios")) {
                // System.out.println("Oie eu sou um produto alimentício");
                // categoria_produto.setBackgroundResource(R.color.meuVerde);
                 categoria_produto.setTextColor(Color.parseColor("#ec6202"));
                 categoria_produto.setTypeface(Typeface.defaultFromStyle(Typeface.BOLD));
             }
-        if (listaProdutos.get(i).getCategoria_produto() == "Produtos de Limpeza") {
+        if (listaProdutos.get(i).getCategoria_produto().equals("Produtos de Limpeza")) {
 
             categoria_produto.setTextColor(Color.parseColor("#1E90FF"));
             categoria_produto.setTypeface(Typeface.defaultFromStyle(Typeface.BOLD));
         }
 
-        if (listaProdutos.get(i).getCategoria_produto() == "Produtos de Higiene Pessoal") {
+        if (listaProdutos.get(i).getCategoria_produto().equals("Produtos de Higiene Pessoal")) {
 
             categoria_produto.setTextColor(Color.parseColor("#DB7093"));
             categoria_produto.setTypeface(Typeface.defaultFromStyle(Typeface.BOLD));

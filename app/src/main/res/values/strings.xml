@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Lista de Compras da Cinthia</string>
+    <string name="app_name">Lista de Compras da Cinthia </string>
     <!-- Strings used for fragments for navigation -->
     <string name="first_fragment_label">First Fragment</string>
     <string name="second_fragment_label">Second Fragment</string>
@@ -42,4 +42,7 @@
         libero vel nunc consequat, quis tincidunt nisl eleifend. Cras bibendum enim a justo luctus
         vestibulum. Fusce dictum libero quis erat maximus, vitae volutpat diam dignissim.
     </string>
+    <string name="marcar_todos">Marcar todos</string>
+    <string name="adicionar_produto">Adicionar produto</string>
+    <string name="salvar">Salvar</string>
 </resources>
