@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
+    private boolean modoRemocao = false;
     private RecyclerView recyclerView;
     ListView simpleList;
     List<Produto> listaProdutos = new ArrayList<Produto>();
@@ -53,21 +54,24 @@ public class MainActivity extends AppCompatActivity {
 
         simpleList = (ListView) findViewById(R.id.simpleListView);
         //O Adapter fica acessível em toda Activity
-        customAdapter = new CustomAdapter(getApplicationContext(), listaProdutos);
+        //chamando o construtor com a callback no último parâmetro para salvar o unchecked
+        customAdapter = new CustomAdapter(getApplicationContext(), listaProdutos,  () -> salvarLista());
         simpleList.setAdapter(customAdapter);
 
+        removerItem();
        //recuperaProdutos(listaProdutos);
 
         recuperaProdutos(listaProdutos);
         //Se a lista inicial estiver vazia cria somente uma única vez os produtos inicializados
         if(listaProdutos.isEmpty()){
             criarProdutos();
+            salvarLista(); // SALVANDO APÓS CRIAR NA MEMÓRIA
         }
 
         //Função para chamar o botão para abrir o modal
         novo_produto();
         //Função para salvar na memória do dispositivo
-        salvar(listaProdutos);
+
 
         CheckBox binding = findViewById(R.id.marcar_todos);
         binding.setOnClickListener(new View.OnClickListener() {
@@ -98,6 +102,8 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                 }
+
+                salvarLista(); // SALVANDO A CADA CHECK
                 customAdapter.notifyDataSetChanged();
             }
         });
@@ -130,49 +136,58 @@ public class MainActivity extends AppCompatActivity {
     }
     //função para salvar o arquivo na memória local do dispositivo
 
-    private void salvar(List<Produto> listaProdutos) {
 
-        Button buttonSave = findViewById(R.id.id_salvar);
-        //evento para quando o botão for clicado
-        buttonSave.setOnClickListener(view -> {
+    private void salvarLista() {
+        SharedPreferences preferences = getSharedPreferences(ARQUIVO_PREFERENCIA, MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
 
-            int contador = 0;
-            //SharedPreferes é simplesmente um arquivo xml com os dados
-            SharedPreferences preferences = getSharedPreferences(ARQUIVO_PREFERENCIA, 0);
-            SharedPreferences.Editor editor = preferences.edit();
+        Gson gson = new Gson();
+        String json = gson.toJson(listaProdutos);
 
-            //limpar antes de salvar e evita dados antigos sobrando.
-            editor.clear();
-
-            for (int i = 0; i < listaProdutos.size(); i++) {
-
-
-                Produto p = listaProdutos.get(i);
-
-                //Salva cada produto com uma chave diferente produto_id
-                editor.putString("produto_categoria_" + i, p.getCategoria_produto());
-                editor.putString("produto_nome_" + i, p.getNome_produto());
-                editor.putBoolean("produto_tem_" + i, p.isTem());
-
-
-                if (p.isTem()) {
-                    contador++;
-                }
-            }
-
-            editor.putInt("quantidade_produtos", listaProdutos.size());
-            editor.apply();
-
-            Toast.makeText(getApplicationContext(),
-                    "Quantidade de itens salvos: " + contador,
-                    Toast.LENGTH_SHORT).show();
-        });
-
-        for (Produto p : listaProdutos) {
-            System.out.println("Produto Salvar: "+p.getNome_produto());
-        }
+        editor.putString("lista_produtos_json", json);
+        editor.apply();
     }
 
+    private void removerItem() {
+
+        Button buttonRemover = findViewById(R.id.id_remover);
+
+        buttonRemover.setOnClickListener(v -> {
+
+            if (!modoRemocao) {
+                modoRemocao = true;
+                customAdapter.setModoRemocao(true);
+                customAdapter.notifyDataSetChanged();
+
+                Toast.makeText(this, "Selecione os itens para remover", Toast.LENGTH_SHORT).show();
+            } else {
+
+                List<Produto> paraRemover = new ArrayList<>();
+
+                for (Produto p : listaProdutos) {
+                    if (p.isSelecionado()) {
+                        paraRemover.add(p);
+                    }
+                }
+
+                listaProdutos.removeAll(paraRemover);
+
+                salvarLista();
+
+                modoRemocao = false;
+                customAdapter.setModoRemocao(false);
+
+                customAdapter.notifyDataSetChanged();
+
+
+            Toast.makeText(getApplicationContext(),
+                    "Itens removidos: " + paraRemover.size(),
+                    Toast.LENGTH_SHORT).show();
+            }
+        });
+
+
+    }
 
     //Função para abrir o modal de adição de produtos
     private void abrirModalProduto() {
@@ -210,7 +225,7 @@ public class MainActivity extends AppCompatActivity {
 
             Produto produto = new Produto(categoria, nome, comprado);
             this.listaProdutos.add(produto);
-            salvar(listaProdutos);
+            salvarLista();
             customAdapter.notifyDataSetChanged(); // atualiza ListView automático
 
 
@@ -227,21 +242,22 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    private void recuperaProdutos(List<Produto> listaProdutos){
-        SharedPreferences preferences = getSharedPreferences(ARQUIVO_PREFERENCIA, 0);
+    private void recuperaProdutos(List<Produto> listaProdutos) {
 
-        int quantidade = preferences.getInt("quantidade_produtos", 0);
+        SharedPreferences preferences = getSharedPreferences(ARQUIVO_PREFERENCIA, MODE_PRIVATE);
 
-        for (int i = 0; i < quantidade; i++) {
+        String json = preferences.getString("lista_produtos_json", null);
 
-            String categoria = preferences.getString("produto_categoria_" + i, "");
-            String nome = preferences.getString("produto_nome_" + i, "");
-            boolean tem = preferences.getBoolean("produto_tem_" + i, false);
+        if (json != null) {
 
-            Produto produto = new Produto(categoria, nome, tem);
-            listaProdutos.add(produto);
+            Gson gson = new Gson();
 
+            Type type = new TypeToken<List<Produto>>() {}.getType();
 
+            List<Produto> listaRecuperada = gson.fromJson(json, type);
+
+            listaProdutos.clear();
+            listaProdutos.addAll(listaRecuperada);
         }
     }
 
@@ -262,172 +278,172 @@ public class MainActivity extends AppCompatActivity {
             System.out.println("Produto Main: "+p.getNome_produto());
         }
 
-//        produto = new Produto(categorias[0], "Feijão", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Açúcar", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Farofa", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Enlatados menos a ervilha", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Café", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Filtro de Café", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Macarrão e Espaguete", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Extrato de Tomate", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Arisco", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Orégano", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Caldo de Knor", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Sal", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Óleo", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Alho", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Tomate", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Batata", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Cebola", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Chá", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Pipoca", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Margarina", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Ovos", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Leite", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Milho", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Selela", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Calabresa", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Salame", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Sucos", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Bolachas", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Nescau", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Erva de tererê", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Trigo", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Pepino", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Maionese", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Mortadela", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Ração do Garfield", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Vinagre", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[0], "Sucrilho", false);
-//        this.listaProdutos.add(produto);
-//
-//
-//        produto = new Produto(categorias[1], "Detergente", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[1], "Bom bril", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[1], "Omo", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[1], "Pinho Sol", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[1], "Kiboa", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[1], "Soda", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[1], "Luvas", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[1], "Álcool", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[1], "Sabão em barra", false);
-//        this.listaProdutos.add(produto);
-//
-//
-//        produto = new Produto(categorias[2], "Sabonete", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[2], "Skala", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[2], "Buchas", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[2], "Escova de chão", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[2], "Papel higiênico", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[2], "Pasta de dentes", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[2], "Sacos de lixo", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[2], "Enxaguante bucal", false);
-//        this.listaProdutos.add(produto);
-//
-//        produto = new Produto(categorias[2], "Amaciante", false);
-//        this.listaProdutos.add(produto);
+        produto = new Produto(categorias[0], "Feijão", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Açúcar", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Farofa", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Enlatados menos a ervilha", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Café", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Filtro de Café", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Macarrão e Espaguete", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Extrato de Tomate", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Arisco", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Orégano", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Caldo de Knor", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Sal", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Óleo", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Alho", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Tomate", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Batata", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Cebola", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Chá", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Pipoca", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Margarina", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Ovos", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Leite", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Milho", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Selela", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Calabresa", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Salame", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Sucos", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Bolachas", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Nescau", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Erva de tererê", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Trigo", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Pepino", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Maionese", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Mortadela", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Ração do Garfield", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Vinagre", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[0], "Sucrilho", false);
+        this.listaProdutos.add(produto);
+
+
+        produto = new Produto(categorias[1], "Detergente", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[1], "Bom bril", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[1], "Omo", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[1], "Pinho Sol", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[1], "Kiboa", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[1], "Soda", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[1], "Luvas", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[1], "Álcool", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[1], "Sabão em barra", false);
+        this.listaProdutos.add(produto);
+
+
+        produto = new Produto(categorias[2], "Sabonete", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[2], "Skala", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[2], "Buchas", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[2], "Escova de chão", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[2], "Papel higiênico", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[2], "Pasta de dentes", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[2], "Sacos de lixo", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[2], "Enxaguante bucal", false);
+        this.listaProdutos.add(produto);
+
+        produto = new Produto(categorias[2], "Amaciante", false);
+        this.listaProdutos.add(produto);
 
         ///listaProdutos.get(0).setTem(true);
 

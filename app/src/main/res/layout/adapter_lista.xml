@@ -28,6 +28,14 @@
         android:orientation="horizontal"
         tools:ignore="UselessParent">
 
+        <CheckBox
+            android:id="@+id/id_selecione"
+            android:layout_width="1dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:buttonTint="#CE1E1E"
+            android:text="" />
+
         <TextView
             android:id="@+id/nome_produtoid"
             android:layout_width="50dp"

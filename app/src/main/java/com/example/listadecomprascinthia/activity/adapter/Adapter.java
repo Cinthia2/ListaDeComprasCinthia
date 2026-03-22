@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.logging.Logger;
 import android.util.SparseBooleanArray;
 
+
+
 public class Adapter extends RecyclerView.Adapter<Adapter.MyViewHolder> {
     public boolean isAllChecked = false;
     public boolean isOneChecked = false;

@@ -70,14 +70,14 @@
     </LinearLayout>
 
     <Button
-        android:id="@+id/id_salvar"
-        android:layout_width="112dp"
-        android:layout_height="50dp"
+        android:id="@+id/id_remover"
+        android:layout_width="132dp"
+        android:layout_height="49dp"
         android:layout_marginStart="276dp"
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="30dp"
         android:layout_weight="1"
-        android:text="@string/salvar"
+        android:text="Remover"
         android:textColor="#FFFFFF"
         android:textSize="16sp"
         android:textStyle="bold"
@@ -90,12 +90,12 @@
         android:id="@+id/resultado"
         android:layout_width="118dp"
         android:layout_height="42dp"
-        android:text="teste"
+        android:text=""
         android:textAlignment="center"
         android:textSize="14sp"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="@+id/linearLayout2"
-        app:layout_constraintEnd_toStartOf="@+id/id_salvar"
+        app:layout_constraintEnd_toStartOf="@+id/id_remover"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/linearLayout" />
 

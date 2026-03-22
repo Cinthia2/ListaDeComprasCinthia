@@ -19,23 +19,34 @@ import com.example.listadecomprascinthia.activity.model.Produto;
 
 import java.util.List;
 
+
 public class CustomAdapter extends BaseAdapter {
+    // Interface DENTRO da classe
+    public interface SalvarCallback {
+        void salvar();
+    }
+    private boolean modoRemocao = false;
+
+    private SalvarCallback salvarCallback;
+
     public boolean isAllChecked = false;
     Context context;
     List<Produto> listaProdutos;
-
     LayoutInflater inflter;
 
 
 
-    public CustomAdapter(Context applicationContext, List<Produto> produtoList){
+    public CustomAdapter(Context applicationContext, List<Produto> produtoList, SalvarCallback callback){
         this.context = applicationContext;
         this.listaProdutos = produtoList;
-
+        this.salvarCallback = callback;
         inflter = (LayoutInflater.from(applicationContext));
     }
 
-
+    // setter para controlar pela Activity
+    public void setModoRemocao(boolean modoRemocao) {
+        this.modoRemocao = modoRemocao;
+    }
 
     public void setAllChecked(boolean isAllChecked) {
         this.isAllChecked = isAllChecked;
@@ -60,11 +71,28 @@ public class CustomAdapter extends BaseAdapter {
 
     @Override
     public View getView(int i, View view, ViewGroup viewGroup) {
-
+        //primeiro infla depois usa aview
         view = inflter.inflate(R.layout.adapter_lista, null);
+
+
         Button categoria_produto = (Button) view.findViewById(R.id.categoriaid);
         TextView nome_produto = (TextView) view.findViewById(R.id.nome_produtoid);
         CheckBox check_produto = (CheckBox) view.findViewById(R.id.temid);
+        CheckBox checkBoxRemover = view.findViewById(R.id.id_selecione);
+
+        // visibilidade modo remoção
+        checkBoxRemover.setVisibility(modoRemocao ? View.VISIBLE : View.GONE);
+
+        // estado checkbox remover
+        checkBoxRemover.setOnCheckedChangeListener(null);
+        checkBoxRemover.setChecked(listaProdutos.get(i).isSelecionado());
+
+        checkBoxRemover.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            listaProdutos.get(i).setSelecionado(isChecked);
+        });
+
+
+
 
 
         categoria_produto.setText(listaProdutos.get(i).getCategoria_produto());
@@ -92,27 +120,55 @@ public class CustomAdapter extends BaseAdapter {
             categoria_produto.setTypeface(Typeface.defaultFromStyle(Typeface.BOLD));
         }
 
-        check_produto.setOnClickListener(new View.OnClickListener() {
-          @Override
-          public void onClick(View v) {
-              //Pegando o textView de outra view, no caso a da MainActivity
+        //usar setOnCheckedChangeListener
+        Produto produto = listaProdutos.get(i);
 
-              if (check_produto.isChecked()){
-                 // Toast.makeText(context, "Marcado "+listaProdutos.get(i).getNome_produto(), Toast.LENGTH_SHORT).show();
-                  check_produto.setChecked(true);
-                  listaProdutos.get(i).setTem(true);
-                  check_produto.setTextColor(Color.parseColor("#FF610B53"));
+        // remove listener antigo
+        check_produto.setOnCheckedChangeListener(null);
 
-              }else{
-                  check_produto.setChecked(false);
-                  listaProdutos.get(i).setTem(false);
+        // seta estado
+        check_produto.setChecked(produto.isTem());
+
+        // adiciona listener
+        check_produto.setOnCheckedChangeListener((buttonView, isChecked) -> {
+
+            produto.setTem(isChecked);
+
+            if (salvarCallback != null) {
+                salvarCallback.salvar();
+            }
+        });
+        categoria_produto.setText(produto.getCategoria_produto());
+        nome_produto.setText(produto.getNome_produto());
 
 
-              }
+        return view;
+    }
 
 
-          }
-      });
+//        check_produto.setOnClickListener(new View.OnClickListener() {
+//          @Override
+//          public void onClick(View v) {
+//              //Pegando o textView de outra view, no caso a da MainActivity
+//
+//              if (check_produto.isChecked()){
+//                 // Toast.makeText(context, "Marcado "+listaProdutos.get(i).getNome_produto(), Toast.LENGTH_SHORT).show();
+//                  check_produto.setChecked(true);
+//                  listaProdutos.get(i).setTem(true);
+//                  check_produto.setTextColor(Color.parseColor("#FF610B53"));
+//
+//              }else{
+//                  check_produto.setChecked(false);
+//                  listaProdutos.get(i).setTem(false);
+//
+//
+//              }
+              // SALVA SEMPRE, tanto true quanto false
+            //  salvarListaCallback.salvar();
+
+
+         // }
+      //});
 
 
 
@@ -122,8 +178,7 @@ public class CustomAdapter extends BaseAdapter {
         //  else check_produto.setChecked(true);
 
 
-        return view;
-    }
+
 
 
 
