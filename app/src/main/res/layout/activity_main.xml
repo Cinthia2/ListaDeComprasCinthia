@@ -1,102 +1,85 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-
     android:layout_height="match_parent"
     tools:context=".activity.MainActivity">
 
     <LinearLayout
-        android:id="@+id/linearLayout2"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:orientation="horizontal"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
-        <CheckBox
-            android:id="@+id/marcar_todos"
-            android:layout_width="0dp"
+        <!-- Barra de ações: marcar todos + remover -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="0dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="16dp">
+
+            <CheckBox
+                android:id="@+id/marcar_todos"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/marcar_todos"
+                android:textSize="16sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/id_remover"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/remover"
+                android:textAllCaps="false"
+                android:textColor="@color/vermelho_remover"
+                app:cornerRadius="24dp"
+                app:icon="@drawable/ic_delete_24"
+                app:iconTint="@color/vermelho_remover"
+                app:strokeColor="@color/vermelho_remover" />
+        </LinearLayout>
+
+        <!-- Resumo: quantos itens faltam -->
+        <TextView
+            android:id="@+id/resultado"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="8dp"
+            android:textSize="14sp"
+            tools:text="Faltam 12 de 58 itens" />
+
+        <!-- Lista agrupada por categoria -->
+        <ExpandableListView
+            android:id="@+id/listaCategorias"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
             android:layout_weight="1"
-            android:text="@string/marcar_todos"
-            android:textAlignment="viewStart" />
-
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/btnNovoProduto"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:clickable="true"
-            android:contentDescription="@string/adicionar_produto"
-            android:focusable="true"
-            android:visibility="visible"
-            app:backgroundTint="@color/purple_700"
-            app:srcCompat="@android:drawable/ic_menu_add" />
-
+            android:childDivider="@android:color/transparent"
+            android:clipToPadding="false"
+            android:divider="@null"
+            android:dividerHeight="0dp"
+            android:groupIndicator="@null"
+            android:paddingBottom="96dp" />
     </LinearLayout>
 
-    <LinearLayout
-        android:id="@+id/linearLayout"
-        android:layout_width="360dp"
-        android:layout_height="718dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="70dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="53dp"
-        android:orientation="vertical"
-        app:layout_constraintBottom_toBottomOf="@+id/linearLayout2"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/linearLayout2">
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/btnNovoProduto"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="@dimen/fab_margin"
+        android:contentDescription="@string/adicionar_produto"
+        android:text="@string/novo_produto"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        app:backgroundTint="@color/roxo_principal"
+        app:icon="@drawable/ic_add_24"
+        app:iconTint="@color/white" />
 
-
-        <ListView
-            android:id="@+id/simpleListView"
-            android:layout_width="338dp"
-            android:layout_height="598dp"
-            android:layout_marginStart="10dp"
-            android:layout_marginTop="30dp"
-            android:layout_marginBottom="10dp"
-            android:divider="@color/purple_200"
-            android:dividerHeight="1dp"
-            android:footerDividersEnabled="true">
-
-        </ListView>
-
-    </LinearLayout>
-
-    <Button
-        android:id="@+id/id_remover"
-        android:layout_width="132dp"
-        android:layout_height="49dp"
-        android:layout_marginStart="276dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginBottom="30dp"
-        android:layout_weight="1"
-        android:text="Remover"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        app:cornerRadius="25sp"
-        app:layout_constraintBottom_toBottomOf="@+id/linearLayout"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="@+id/linearLayout2" />
-
-    <TextView
-        android:id="@+id/resultado"
-        android:layout_width="118dp"
-        android:layout_height="42dp"
-        android:text=""
-        android:textAlignment="center"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toBottomOf="@+id/linearLayout2"
-        app:layout_constraintEnd_toStartOf="@+id/id_remover"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/linearLayout" />
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

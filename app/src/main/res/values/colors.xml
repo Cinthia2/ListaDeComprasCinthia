@@ -8,5 +8,15 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="meuVerde">#20B2AA</color>
-    <color name="roxo_claro">#B266FF</color>S
+    <color name="roxo_claro">#B266FF</color>
+
+    <!-- Cor principal do app (botão Novo produto) -->
+    <color name="roxo_principal">#72027A</color>
+    <color name="vermelho_remover">#C62828</color>
+
+    <!-- Cores das categorias -->
+    <color name="cat_alimenticios">#EC6202</color>
+    <color name="cat_limpeza">#1E90FF</color>
+    <color name="cat_higiene">#DB7093</color>
+    <color name="cat_outros">#757575</color>
 </resources>

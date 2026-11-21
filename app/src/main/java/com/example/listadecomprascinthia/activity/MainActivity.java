@@ -2,28 +2,30 @@ package com.example.listadecomprascinthia.activity;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.util.Log;
+import android.text.TextUtils;
 import android.view.View;
+import android.widget.AbsListView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
-import android.widget.ListView;
+import android.widget.ExpandableListView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.listadecomprascinthia.R;
-import com.example.listadecomprascinthia.activity.adapter.CustomAdapter;
+import com.example.listadecomprascinthia.activity.adapter.CategoriaAdapter;
+import com.example.listadecomprascinthia.activity.model.Categorias;
 import com.example.listadecomprascinthia.activity.model.Produto;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
+import com.google.android.material.textfield.TextInputLayout;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -31,112 +33,83 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     private boolean modoRemocao = false;
-    private RecyclerView recyclerView;
-    ListView simpleList;
     List<Produto> listaProdutos = new ArrayList<Produto>();
-    //Transformar o adapter em variável global
-    private CustomAdapter customAdapter;
+
+    // Lista agrupada por categoria (cada categoria tem sua sublista de produtos)
+    private ExpandableListView listaCategorias;
+    private CategoriaAdapter categoriaAdapter;
+
     //variável para armazenar a escolha do usuário e manter esta informação em um arquivo, mesmo se o
-    //usuário fechar o aplicativo Dados para salvar no arquivo TESTE
+    //usuário fechar o aplicativo
     private static final String ARQUIVO_PREFERENCIA = "ArquivoPreferencia";
     private TextView textResultado;
+    private Button buttonRemover;
 
-    private CheckBox checkboxTemid;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        //this.criarProdutos();
-
-        //label de teste saída das coisas
-        textResultado = (TextView)findViewById(R.id.resultado);
-
-        simpleList = (ListView) findViewById(R.id.simpleListView);
-        //O Adapter fica acessível em toda Activity
-        //chamando o construtor com a callback no último parâmetro para salvar o unchecked
-        customAdapter = new CustomAdapter(getApplicationContext(), listaProdutos,  () -> salvarLista());
-        simpleList.setAdapter(customAdapter);
-
-        removerItem();
-       //recuperaProdutos(listaProdutos);
+        textResultado = findViewById(R.id.resultado);
+        listaCategorias = findViewById(R.id.listaCategorias);
 
         recuperaProdutos(listaProdutos);
         //Se a lista inicial estiver vazia cria somente uma única vez os produtos inicializados
-        if(listaProdutos.isEmpty()){
+        if (listaProdutos.isEmpty()) {
             criarProdutos();
             salvarLista(); // SALVANDO APÓS CRIAR NA MEMÓRIA
         }
 
+        //chamando o construtor com a callback no último parâmetro para salvar ao marcar/desmarcar
+        categoriaAdapter = new CategoriaAdapter(this, listaProdutos, this::salvarLista);
+        listaCategorias.setAdapter(categoriaAdapter);
+        expandirTodasCategorias();
+        atualizarResumo();
+
+        removerItem();
         //Função para chamar o botão para abrir o modal
         novo_produto();
-        //Função para salvar na memória do dispositivo
 
+        CheckBox marcarTodos = findViewById(R.id.marcar_todos);
+        marcarTodos.setOnClickListener(view -> {
+            boolean marcar = marcarTodos.isChecked();
+            for (Produto p : listaProdutos) {
+                p.setTem(marcar);
+            }
+            salvarLista(); // SALVANDO A CADA CHECK
+            categoriaAdapter.notifyDataSetChanged();
+        });
+    }
 
-        CheckBox binding = findViewById(R.id.marcar_todos);
-        binding.setOnClickListener(new View.OnClickListener() {
+    private void expandirTodasCategorias() {
+        for (int i = 0; i < categoriaAdapter.getGroupCount(); i++) {
+            listaCategorias.expandGroup(i);
+        }
+    }
+
+    private void novo_produto() {
+        ExtendedFloatingActionButton buttonAdicionarProduto = findViewById(R.id.btnNovoProduto);
+        // abrir o modal para adicionar mais produtos
+        buttonAdicionarProduto.setOnClickListener(view -> abrirModalProduto());
+
+        // Recolhe o botão (fica só o ícone +) ao rolar a lista e expande de novo ao voltar ao topo
+        listaCategorias.setOnScrollListener(new AbsListView.OnScrollListener() {
             @Override
-            public void onClick(View view) {
-                //arquivo que vai ser gravado e modo de gravação 0 somente este aplicativo vai poder ler este arquivo
-                //SharedPreferences preferences = getSharedPreferences(ARQUIVO_PREFERENCIA, 0);
-                //SharedPreferences.Editor editor = preferences.edit();
+            public void onScrollStateChanged(AbsListView view, int scrollState) {
+            }
 
-
-                Toast.makeText(getApplicationContext(), "MARCAR TODOS CLICADO ", Toast.LENGTH_SHORT).show();
-                if (binding.isChecked()) {
-                    for (int i = 0; i < listaProdutos.size(); i++) {
-                        listaProdutos.get(i).setTem(true);
-                        //salva na chave "tem" o valor "true"
-                        //editor.putBoolean("chave_marcar_todos"+listaProdutos.get(i), true);
-                        //editor.commit();
-
-                    }
-
+            @Override
+            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+                if (firstVisibleItem > 0) {
+                    buttonAdicionarProduto.shrink();
                 } else {
-
-                    for (int i = 0; i < listaProdutos.size(); i++) {
-                        listaProdutos.get(i).setTem(false);
-                        //salva na chave "tem" o valor "false"
-                        //editor.putBoolean("chave_marcar_todos"+listaProdutos.get(i), false);
-                        //editor.commit();
-                    }
-
+                    buttonAdicionarProduto.extend();
                 }
-
-                salvarLista(); // SALVANDO A CADA CHECK
-                customAdapter.notifyDataSetChanged();
             }
         });
-
-
-
-    //recuperar dados salvos
-    //SharedPreferences preferences = getSharedPreferences(ARQUIVO_PREFERENCIA, 0);
-
-    //validação se existe a chave tem em preferências
-    //if (preferences.contains("chave_marcar_todos")){
-    //Caso o preferencias não consiga recuperar o dado armazenado seta como false o checkbox marcar_todos
-    //Boolean chave_marcar_todos = preferences.getBoolean("chave_marcar_todos", false);
-    //binding.setChecked(chave_marcar_todos);
-    //  }else{
-    //    System.out.println("Olá não foi salvo o marcar todos");
-
     }
 
-    private void novo_produto(){
-        //botão +
-        FloatingActionButton buttonAdicionarProduto = findViewById(R.id.btnNovoProduto);
-        buttonAdicionarProduto.setOnClickListener(view -> {
-            Toast.makeText(getApplicationContext(),
-                    "Novo produto",
-                    Toast.LENGTH_SHORT).show();
-            // abrir o modal para adicionar mais produtos
-            abrirModalProduto();
-        });
-    }
     //função para salvar o arquivo na memória local do dispositivo
-
-
     private void salvarLista() {
         SharedPreferences preferences = getSharedPreferences(ARQUIVO_PREFERENCIA, MODE_PRIVATE);
         SharedPreferences.Editor editor = preferences.edit();
@@ -146,24 +119,31 @@ public class MainActivity extends AppCompatActivity {
 
         editor.putString("lista_produtos_json", json);
         editor.apply();
+
+        atualizarResumo();
+    }
+
+    private void atualizarResumo() {
+        if (textResultado == null) return;
+        int faltam = 0;
+        for (Produto p : listaProdutos) {
+            if (!p.isTem()) faltam++;
+        }
+        textResultado.setText("Faltam " + faltam + " de " + listaProdutos.size() + " itens");
     }
 
     private void removerItem() {
-
-        Button buttonRemover = findViewById(R.id.id_remover);
+        buttonRemover = findViewById(R.id.id_remover);
 
         buttonRemover.setOnClickListener(v -> {
-
             if (!modoRemocao) {
                 modoRemocao = true;
-                customAdapter.setModoRemocao(true);
-                customAdapter.notifyDataSetChanged();
+                categoriaAdapter.setModoRemocao(true);
+                buttonRemover.setText(R.string.excluir_selecionados);
 
                 Toast.makeText(this, "Selecione os itens para remover", Toast.LENGTH_SHORT).show();
             } else {
-
                 List<Produto> paraRemover = new ArrayList<>();
-
                 for (Produto p : listaProdutos) {
                     if (p.isSelecionado()) {
                         paraRemover.add(p);
@@ -171,22 +151,17 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 listaProdutos.removeAll(paraRemover);
-
                 salvarLista();
 
                 modoRemocao = false;
-                customAdapter.setModoRemocao(false);
+                categoriaAdapter.setModoRemocao(false);
+                buttonRemover.setText(R.string.remover);
 
-                customAdapter.notifyDataSetChanged();
-
-
-            Toast.makeText(getApplicationContext(),
-                    "Itens removidos: " + paraRemover.size(),
-                    Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(),
+                        "Itens removidos: " + paraRemover.size(),
+                        Toast.LENGTH_SHORT).show();
             }
         });
-
-
     }
 
     //Função para abrir o modal de adição de produtos
@@ -195,49 +170,53 @@ public class MainActivity extends AppCompatActivity {
         View view = getLayoutInflater().inflate(R.layout.modal_adicionar_produto, null);
 
         Spinner spinnerCategoria = view.findViewById(R.id.spinnerCategoria);
+        TextInputLayout inputNomeProduto = view.findViewById(R.id.inputNomeProduto);
         EditText nomeProduto = view.findViewById(R.id.editNomeProduto);
         CheckBox checkComprado = view.findViewById(R.id.checkComprado);
         Button btnAdicionar = view.findViewById(R.id.btnAdicionar);
-
-        String[] categorias = {
-                "Produtos Alimentícios",
-                "Produtos de Limpeza",
-                "Produtos de Higiene Pessoal"
-        };
+        Button btnCancelar = view.findViewById(R.id.btnCancelar);
 
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
                 this,
                 android.R.layout.simple_spinner_dropdown_item,
-                categorias
+                Categorias.TODAS
         );
-
         spinnerCategoria.setAdapter(adapter);
 
-        AlertDialog dialog = new AlertDialog.Builder(this)
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
                 .setView(view)
                 .create();
 
-        btnAdicionar.setOnClickListener(v -> {
+        btnCancelar.setOnClickListener(v -> dialog.dismiss());
 
+        btnAdicionar.setOnClickListener(v -> {
             String categoria = spinnerCategoria.getSelectedItem().toString();
-            String nome = nomeProduto.getText().toString();
+            String nome = nomeProduto.getText().toString().trim();
             boolean comprado = checkComprado.isChecked();
 
-            Produto produto = new Produto(categoria, nome, comprado);
-            this.listaProdutos.add(produto);
-            salvarLista();
-            customAdapter.notifyDataSetChanged(); // atualiza ListView automático
+            if (TextUtils.isEmpty(nome)) {
+                inputNomeProduto.setError(getString(R.string.informe_nome_produto));
+                return;
+            }
 
+            Produto produto = new Produto(categoria, nome, comprado);
+            listaProdutos.add(produto);
+            salvarLista();
+            categoriaAdapter.notifyDataSetChanged();
+
+            // Abre a sublista da categoria e rola até o produto recém adicionado
+            int grupo = categoriaAdapter.getPosicaoCategoria(categoria);
+            if (grupo >= 0) {
+                listaCategorias.expandGroup(grupo);
+                listaCategorias.setSelectedChild(grupo, categoriaAdapter.getChildrenCount(grupo) - 1, true);
+            }
 
             Toast.makeText(getApplicationContext(),
-                    "Produto "+ produto.getNome_produto() +" adicionado!",
-                    Toast.LENGTH_LONG).show();
+                    "Produto " + produto.getNome_produto() + " adicionado em " + categoria,
+                    Toast.LENGTH_SHORT).show();
 
             dialog.dismiss();
-
-
         });
-
 
         dialog.show();
     }
@@ -267,7 +246,7 @@ public class MainActivity extends AppCompatActivity {
         System.out.println("estado da minha lista de produtos "+ this.listaProdutos);
 
 
-        String[] categorias = {"Produtos Alimentícios", "Produtos de Limpeza", "Produtos de Higiene Pessoal"};
+        String[] categorias = Categorias.TODAS;
 
 
         Produto produto = new Produto(categorias[0], "Arroz", false);
