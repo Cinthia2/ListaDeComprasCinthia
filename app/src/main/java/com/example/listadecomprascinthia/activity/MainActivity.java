@@ -5,7 +5,9 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.text.Editable;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.view.View;
 import android.widget.AbsListView;
 import android.widget.ArrayAdapter;
@@ -21,6 +23,7 @@ import com.example.listadecomprascinthia.R;
 import com.example.listadecomprascinthia.activity.adapter.CategoriaAdapter;
 import com.example.listadecomprascinthia.activity.model.Categorias;
 import com.example.listadecomprascinthia.activity.model.Produto;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.android.material.textfield.TextInputLayout;
@@ -29,6 +32,7 @@ import com.google.gson.reflect.TypeToken;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -61,20 +65,26 @@ public class MainActivity extends AppCompatActivity {
         }
 
         //chamando o construtor com a callback no último parâmetro para salvar ao marcar/desmarcar
-        categoriaAdapter = new CategoriaAdapter(this, listaProdutos, this::salvarLista);
+        // e o último parâmetro abre o modal de edição ao tocar no lápis
+        categoriaAdapter = new CategoriaAdapter(this, listaProdutos, this::salvarLista, this::abrirModalProduto);
         listaCategorias.setAdapter(categoriaAdapter);
+        listaCategorias.setEmptyView(findViewById(R.id.listaVazia));
         expandirTodasCategorias();
         atualizarResumo();
 
         removerItem();
         //Função para chamar o botão para abrir o modal
         novo_produto();
+        configurarPesquisa();
 
         CheckBox marcarTodos = findViewById(R.id.marcar_todos);
         marcarTodos.setOnClickListener(view -> {
             boolean marcar = marcarTodos.isChecked();
+            // Durante uma pesquisa, marca/desmarca só os itens encontrados
             for (Produto p : listaProdutos) {
-                p.setTem(marcar);
+                if (categoriaAdapter.passaNoFiltro(p)) {
+                    p.setTem(marcar);
+                }
             }
             salvarLista(); // SALVANDO A CADA CHECK
             categoriaAdapter.notifyDataSetChanged();
@@ -87,10 +97,30 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void configurarPesquisa() {
+        EditText editPesquisa = findViewById(R.id.editPesquisa);
+        editPesquisa.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                categoriaAdapter.setFiltro(s.toString());
+                // Abre todas as categorias para mostrar os resultados
+                expandirTodasCategorias();
+            }
+        });
+    }
+
     private void novo_produto() {
         ExtendedFloatingActionButton buttonAdicionarProduto = findViewById(R.id.btnNovoProduto);
-        // abrir o modal para adicionar mais produtos
-        buttonAdicionarProduto.setOnClickListener(view -> abrirModalProduto());
+        // abrir o modal para adicionar mais produtos (null = produto novo)
+        buttonAdicionarProduto.setOnClickListener(view -> abrirModalProduto(null));
 
         // Recolhe o botão (fica só o ícone +) ao rolar a lista e expande de novo ao voltar ao topo
         listaCategorias.setOnScrollListener(new AbsListView.OnScrollListener() {
@@ -164,24 +194,50 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    //Função para abrir o modal de adição de produtos
-    private void abrirModalProduto() {
+    /**
+     * Abre o modal de produto.
+     * @param produtoEditando null para adicionar um produto novo, ou o produto que será editado.
+     */
+    private void abrirModalProduto(Produto produtoEditando) {
+        boolean editando = produtoEditando != null;
 
         View view = getLayoutInflater().inflate(R.layout.modal_adicionar_produto, null);
 
+        TextView titulo = view.findViewById(R.id.tituloModal);
         Spinner spinnerCategoria = view.findViewById(R.id.spinnerCategoria);
         TextInputLayout inputNomeProduto = view.findViewById(R.id.inputNomeProduto);
         EditText nomeProduto = view.findViewById(R.id.editNomeProduto);
         CheckBox checkComprado = view.findViewById(R.id.checkComprado);
-        Button btnAdicionar = view.findViewById(R.id.btnAdicionar);
+        MaterialButton btnAdicionar = view.findViewById(R.id.btnAdicionar);
         Button btnCancelar = view.findViewById(R.id.btnCancelar);
+
+        List<String> opcoesCategoria = new ArrayList<>(Arrays.asList(Categorias.TODAS));
+        // Se o produto tiver uma categoria fora da lista padrão, mantém ela como opção
+        if (editando && produtoEditando.getCategoria_produto() != null
+                && !opcoesCategoria.contains(produtoEditando.getCategoria_produto())) {
+            opcoesCategoria.add(produtoEditando.getCategoria_produto());
+        }
 
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
                 this,
                 android.R.layout.simple_spinner_dropdown_item,
-                Categorias.TODAS
+                opcoesCategoria
         );
         spinnerCategoria.setAdapter(adapter);
+
+        if (editando) {
+            // Preenche o modal com os dados atuais do produto
+            titulo.setText(R.string.editar_produto);
+            btnAdicionar.setText(R.string.salvar_alteracoes);
+            btnAdicionar.setIcon(null);
+            nomeProduto.setText(produtoEditando.getNome_produto());
+            nomeProduto.setSelection(nomeProduto.getText().length());
+            checkComprado.setChecked(produtoEditando.isTem());
+            int posicao = opcoesCategoria.indexOf(produtoEditando.getCategoria_produto());
+            if (posicao >= 0) {
+                spinnerCategoria.setSelection(posicao);
+            }
+        }
 
         AlertDialog dialog = new MaterialAlertDialogBuilder(this)
                 .setView(view)
@@ -199,26 +255,42 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
 
-            Produto produto = new Produto(categoria, nome, comprado);
-            listaProdutos.add(produto);
-            salvarLista();
-            categoriaAdapter.notifyDataSetChanged();
-
-            // Abre a sublista da categoria e rola até o produto recém adicionado
-            int grupo = categoriaAdapter.getPosicaoCategoria(categoria);
-            if (grupo >= 0) {
-                listaCategorias.expandGroup(grupo);
-                listaCategorias.setSelectedChild(grupo, categoriaAdapter.getChildrenCount(grupo) - 1, true);
+            Produto produto;
+            String mensagem;
+            if (editando) {
+                produto = produtoEditando;
+                produto.setNome_produto(nome);
+                produto.setCategoria_produto(categoria);
+                produto.setTem(comprado);
+                mensagem = "Produto " + nome + " atualizado";
+            } else {
+                produto = new Produto(categoria, nome, comprado);
+                listaProdutos.add(produto);
+                mensagem = "Produto " + nome + " adicionado em " + categoria;
             }
 
-            Toast.makeText(getApplicationContext(),
-                    "Produto " + produto.getNome_produto() + " adicionado em " + categoria,
-                    Toast.LENGTH_SHORT).show();
+            salvarLista();
+            categoriaAdapter.notifyDataSetChanged();
+            rolarAteProduto(produto);
 
+            Toast.makeText(getApplicationContext(), mensagem, Toast.LENGTH_SHORT).show();
             dialog.dismiss();
         });
 
         dialog.show();
+    }
+
+    /** Abre a sublista da categoria do produto e rola até ele (se estiver visível na pesquisa atual). */
+    private void rolarAteProduto(Produto produto) {
+        int grupo = categoriaAdapter.getPosicaoCategoria(produto.getCategoria_produto());
+        if (grupo < 0) return;
+        listaCategorias.expandGroup(grupo);
+        for (int i = 0; i < categoriaAdapter.getChildrenCount(grupo); i++) {
+            if (categoriaAdapter.getChild(grupo, i) == produto) {
+                listaCategorias.setSelectedChild(grupo, i, true);
+                return;
+            }
+        }
     }
 
     private void recuperaProdutos(List<Produto> listaProdutos) {

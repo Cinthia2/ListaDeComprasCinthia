@@ -55,4 +55,9 @@
     <string name="adicionar">Adicionar</string>
     <string name="cancelar">Cancelar</string>
     <string name="informe_nome_produto">Informe o nome do produto</string>
+    <string name="pesquisar_produto">Pesquisar produto</string>
+    <string name="nenhum_produto_encontrado">Nenhum produto encontrado</string>
+    <string name="editar_produto">Editar produto</string>
+    <string name="editar">Editar</string>
+    <string name="salvar_alteracoes">Salvar</string>
 </resources>

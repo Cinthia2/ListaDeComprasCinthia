@@ -11,6 +11,34 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
+        <!-- Campo de pesquisa -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/inputPesquisa"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginEnd="16dp"
+            android:hint="@string/pesquisar_produto"
+            app:boxCornerRadiusBottomEnd="24dp"
+            app:boxCornerRadiusBottomStart="24dp"
+            app:boxCornerRadiusTopEnd="24dp"
+            app:boxCornerRadiusTopStart="24dp"
+            app:endIconMode="clear_text"
+            app:hintEnabled="false"
+            app:startIconDrawable="@drawable/ic_search_24">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/editPesquisa"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/pesquisar_produto"
+                android:imeOptions="actionSearch"
+                android:inputType="text"
+                android:maxLines="1" />
+        </com.google.android.material.textfield.TextInputLayout>
+
         <!-- Barra de ações: marcar todos + remover -->
         <LinearLayout
             android:layout_width="match_parent"
@@ -66,6 +94,18 @@
             android:dividerHeight="0dp"
             android:groupIndicator="@null"
             android:paddingBottom="96dp" />
+
+        <!-- Mostrado quando a pesquisa não encontra nada -->
+        <TextView
+            android:id="@+id/listaVazia"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:padding="32dp"
+            android:text="@string/nenhum_produto_encontrado"
+            android:textSize="16sp"
+            android:visibility="gone" />
     </LinearLayout>
 
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton

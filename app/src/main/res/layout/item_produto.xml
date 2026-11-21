@@ -37,4 +37,14 @@
         android:focusable="false"
         android:text="@string/tem"
         android:textSize="14sp" />
+
+    <!-- Abre o modal para editar o produto -->
+    <ImageButton
+        android:id="@+id/btnEditar"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/editar"
+        android:focusable="false"
+        android:src="@drawable/ic_edit_24" />
 </LinearLayout>
