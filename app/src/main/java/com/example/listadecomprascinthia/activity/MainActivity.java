@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.View;
 import android.widget.AbsListView;
 import android.widget.ArrayAdapter;
@@ -21,6 +22,7 @@ import android.widget.Toast;
 
 import com.example.listadecomprascinthia.R;
 import com.example.listadecomprascinthia.activity.adapter.CategoriaAdapter;
+import com.example.listadecomprascinthia.activity.data.ProdutoRepository;
 import com.example.listadecomprascinthia.activity.model.Categorias;
 import com.example.listadecomprascinthia.activity.model.Produto;
 import com.google.android.material.button.MaterialButton;
@@ -33,7 +35,10 @@ import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
     private boolean modoRemocao = false;
@@ -46,6 +51,13 @@ public class MainActivity extends AppCompatActivity {
     //variável para armazenar a escolha do usuário e manter esta informação em um arquivo, mesmo se o
     //usuário fechar o aplicativo
     private static final String ARQUIVO_PREFERENCIA = "ArquivoPreferencia";
+    // Indica se a lista antiga do celular já foi enviada para o Firestore
+    private static final String CHAVE_MIGRADO = "migrado_firestore";
+    private static final String TAG = "MainActivity";
+
+    private final ProdutoRepository repositorio = new ProdutoRepository();
+    private boolean listaCarregada = false;
+
     private TextView textResultado;
     private Button buttonRemover;
 
@@ -57,20 +69,16 @@ public class MainActivity extends AppCompatActivity {
         textResultado = findViewById(R.id.resultado);
         listaCategorias = findViewById(R.id.listaCategorias);
 
-        recuperaProdutos(listaProdutos);
-        //Se a lista inicial estiver vazia cria somente uma única vez os produtos inicializados
-        if (listaProdutos.isEmpty()) {
-            criarProdutos();
-            salvarLista(); // SALVANDO APÓS CRIAR NA MEMÓRIA
-        }
-
-        //chamando o construtor com a callback no último parâmetro para salvar ao marcar/desmarcar
-        // e o último parâmetro abre o modal de edição ao tocar no lápis
-        categoriaAdapter = new CategoriaAdapter(this, listaProdutos, this::salvarLista, this::abrirModalProduto);
+        // A callback "salvar" grava no Firestore o produto marcado/desmarcado
+        // e a "editar" abre o modal de edição ao tocar no lápis
+        categoriaAdapter = new CategoriaAdapter(this, listaProdutos,
+                produto -> repositorio.atualizarTem(Collections.singletonList(produto)),
+                this::abrirModalProduto);
         listaCategorias.setAdapter(categoriaAdapter);
-        listaCategorias.setEmptyView(findViewById(R.id.listaVazia));
-        expandirTodasCategorias();
-        atualizarResumo();
+        textResultado.setText(R.string.carregando_lista);
+
+        // Login anônimo -> migra a lista antiga (se preciso) -> começa a sincronizar
+        conectarFirebase();
 
         removerItem();
         //Função para chamar o botão para abrir o modal
@@ -81,14 +89,115 @@ public class MainActivity extends AppCompatActivity {
         marcarTodos.setOnClickListener(view -> {
             boolean marcar = marcarTodos.isChecked();
             // Durante uma pesquisa, marca/desmarca só os itens encontrados
+            List<Produto> alterados = new ArrayList<>();
             for (Produto p : listaProdutos) {
-                if (categoriaAdapter.passaNoFiltro(p)) {
+                if (categoriaAdapter.passaNoFiltro(p) && p.isTem() != marcar) {
                     p.setTem(marcar);
+                    alterados.add(p);
                 }
             }
-            salvarLista(); // SALVANDO A CADA CHECK
-            categoriaAdapter.notifyDataSetChanged();
+            repositorio.atualizarTem(alterados);
+            atualizarTela();
         });
+    }
+
+    // ---------------------------------------------------------------------
+    // Firebase
+    // ---------------------------------------------------------------------
+
+    private void conectarFirebase() {
+        repositorio.entrar(new ProdutoRepository.Resultado() {
+            @Override
+            public void onSucesso() {
+                migrarListaAntigaSeNecessario();
+            }
+
+            @Override
+            public void onErro(Exception e) {
+                Log.e(TAG, "Falha no login anônimo", e);
+                textResultado.setText(R.string.sem_conexao);
+                Toast.makeText(MainActivity.this, R.string.sem_conexao, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    /**
+     * Na primeira vez que o app roda com Firebase, envia a lista que estava salva no celular
+     * (SharedPreferences) para o Firestore. A lista antiga continua guardada no celular como backup.
+     */
+    private void migrarListaAntigaSeNecessario() {
+        SharedPreferences preferences = getSharedPreferences(ARQUIVO_PREFERENCIA, MODE_PRIVATE);
+        if (preferences.getBoolean(CHAVE_MIGRADO, false)) {
+            iniciarSincronizacao();
+            return;
+        }
+
+        List<Produto> produtosLocais = new ArrayList<>();
+        recuperaProdutos(produtosLocais);
+        if (produtosLocais.isEmpty()) {
+            // Nunca usou o app neste celular: usa a lista inicial padrão
+            criarProdutos();
+            produtosLocais.addAll(listaProdutos);
+            listaProdutos.clear();
+        }
+
+        repositorio.migrarSeBancoVazio(produtosLocais, new ProdutoRepository.Resultado() {
+            @Override
+            public void onSucesso() {
+                preferences.edit().putBoolean(CHAVE_MIGRADO, true).apply();
+                iniciarSincronizacao();
+            }
+
+            @Override
+            public void onErro(Exception e) {
+                // Provavelmente sem internet: sincroniza o que tiver e tenta migrar na próxima abertura
+                Log.e(TAG, "Falha ao migrar lista antiga", e);
+                Toast.makeText(MainActivity.this, R.string.migracao_pendente, Toast.LENGTH_LONG).show();
+                iniciarSincronizacao();
+            }
+        });
+    }
+
+    /** Escuta o Firestore: toda alteração (deste ou de outro celular) atualiza a tela. */
+    private void iniciarSincronizacao() {
+        repositorio.escutar(this, new ProdutoRepository.ListaListener() {
+            @Override
+            public void onLista(List<Produto> produtos) {
+                // Mantém os itens selecionados no modo remoção
+                Set<String> selecionados = new HashSet<>();
+                for (Produto p : listaProdutos) {
+                    if (p.isSelecionado()) selecionados.add(p.getId());
+                }
+                for (Produto p : produtos) {
+                    p.setSelecionado(selecionados.contains(p.getId()));
+                }
+
+                listaProdutos.clear();
+                listaProdutos.addAll(produtos);
+
+                if (!listaCarregada) {
+                    listaCarregada = true;
+                    // Só mostra "Nenhum produto encontrado" depois que a lista carregou
+                    listaCategorias.setEmptyView(findViewById(R.id.listaVazia));
+                    atualizarTela();
+                    expandirTodasCategorias();
+                } else {
+                    atualizarTela();
+                }
+            }
+
+            @Override
+            public void onErro(Exception e) {
+                Toast.makeText(MainActivity.this,
+                        getString(R.string.erro_sincronizar, e.getMessage()),
+                        Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private void atualizarTela() {
+        categoriaAdapter.notifyDataSetChanged();
+        atualizarResumo();
     }
 
     private void expandirTodasCategorias() {
@@ -139,22 +248,8 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    //função para salvar o arquivo na memória local do dispositivo
-    private void salvarLista() {
-        SharedPreferences preferences = getSharedPreferences(ARQUIVO_PREFERENCIA, MODE_PRIVATE);
-        SharedPreferences.Editor editor = preferences.edit();
-
-        Gson gson = new Gson();
-        String json = gson.toJson(listaProdutos);
-
-        editor.putString("lista_produtos_json", json);
-        editor.apply();
-
-        atualizarResumo();
-    }
-
     private void atualizarResumo() {
-        if (textResultado == null) return;
+        if (textResultado == null || !listaCarregada) return;
         int faltam = 0;
         for (Produto p : listaProdutos) {
             if (!p.isTem()) faltam++;
@@ -181,7 +276,8 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 listaProdutos.removeAll(paraRemover);
-                salvarLista();
+                repositorio.remover(paraRemover);
+                atualizarResumo();
 
                 modoRemocao = false;
                 categoriaAdapter.setModoRemocao(false);
@@ -262,15 +358,17 @@ public class MainActivity extends AppCompatActivity {
                 produto.setNome_produto(nome);
                 produto.setCategoria_produto(categoria);
                 produto.setTem(comprado);
+                repositorio.atualizar(produto);
                 mensagem = "Produto " + nome + " atualizado";
             } else {
                 produto = new Produto(categoria, nome, comprado);
+                repositorio.adicionar(produto); // gera o ID e a ordem do produto
                 listaProdutos.add(produto);
                 mensagem = "Produto " + nome + " adicionado em " + categoria;
             }
 
-            salvarLista();
-            categoriaAdapter.notifyDataSetChanged();
+            // Atualiza a tela na hora; o Firestore confirma em seguida (mesmo offline)
+            atualizarTela();
             rolarAteProduto(produto);
 
             Toast.makeText(getApplicationContext(), mensagem, Toast.LENGTH_SHORT).show();
@@ -286,7 +384,8 @@ public class MainActivity extends AppCompatActivity {
         if (grupo < 0) return;
         listaCategorias.expandGroup(grupo);
         for (int i = 0; i < categoriaAdapter.getChildrenCount(grupo); i++) {
-            if (categoriaAdapter.getChild(grupo, i) == produto) {
+            // Compara pelo ID: a lista é recriada a cada atualização do Firestore
+            if (produto.getId() != null && produto.getId().equals(categoriaAdapter.getChild(grupo, i).getId())) {
                 listaCategorias.setSelectedChild(grupo, i, true);
                 return;
             }

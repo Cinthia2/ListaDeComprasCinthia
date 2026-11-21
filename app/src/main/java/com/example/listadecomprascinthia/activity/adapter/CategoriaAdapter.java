@@ -36,7 +36,7 @@ import java.util.Map;
 public class CategoriaAdapter extends BaseExpandableListAdapter {
 
     public interface SalvarCallback {
-        void salvar();
+        void salvar(Produto produto);
     }
 
     public interface EditarCallback {
@@ -225,7 +225,7 @@ public class CategoriaAdapter extends BaseExpandableListAdapter {
         checkTem.setOnCheckedChangeListener((buttonView, isChecked) -> {
             produto.setTem(isChecked);
             if (salvarCallback != null) {
-                salvarCallback.salvar();
+                salvarCallback.salvar(produto);
             }
             notifyDataSetChanged(); // atualiza contador da categoria e o estilo do item
         });

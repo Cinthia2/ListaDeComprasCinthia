@@ -60,4 +60,8 @@
     <string name="editar_produto">Editar produto</string>
     <string name="editar">Editar</string>
     <string name="salvar_alteracoes">Salvar</string>
+    <string name="carregando_lista">Carregando lista…</string>
+    <string name="sem_conexao">Sem conexão. Conecte-se à internet na primeira vez que abrir o app.</string>
+    <string name="migracao_pendente">Não foi possível enviar a lista antiga agora. Tentaremos de novo na próxima abertura.</string>
+    <string name="erro_sincronizar">Erro ao sincronizar: %1$s</string>
 </resources>
